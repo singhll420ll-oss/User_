@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Fixed Top Bar -->
+    <div class="top-bar">
+        <div class="logo">Service App</div>
+        <div class="top-right">
+            <!-- Inbox Icon -->
+            <button class="inbox-btn" onclick="toggleMessages()">
+                <i class="fas fa-inbox"></i>
+                {% if messages %}
+                <span class="notification-badge">{{ messages|length }}</span>
+                {% endif %}
+            </button>
+            
+            <!-- User Info -->
+            <span class="user-name royal-font">{{ session.user_name }}</span>
+            <img src="{% if user.dp_filename %}{{ url_for('static', filename='uploads/' + user.dp_filename) }}{% else %}https://via.placeholder.com/40{% endif %}" 
+                 alt="DP" class="user-dp">
+        </div>
+    </div>
+
+    <!-- Messages Panel -->
+    <div id="messagesPanel" class="messages-panel">
+        <div class="messages-header">
+            <h3>Messages</h3>
+            <button onclick="toggleMessages()" class="close-btn">&times;</button>
+        </div>
+        <div class="messages-list">
+            {% if messages %}
+                {% for msg in messages %}
+                <div class="message-item">
+                    {% if msg.image %}
+                    <img src="{{ url_for('static', filename='uploads/' + msg.image) }}" alt="Message Image">
+                    {% endif %}
+                    <p>{{ msg.description }}</p>
+                    <small>{{ msg.sent_time.strftime('%Y-%m-%d %H:%M') }}</small>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="empty-message">Not available at the time</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Main Dashboard with Horizontal Sections -->
+    <div class="dashboard-container">
+        <!-- Section 1: Services -->
+        <section class="dashboard-section" id="section1">
+            <h2 class="section-title">Services</h2>
+            <div class="cards-container">
+                {% for service in services %}
+                <div class="service-card">
+                    {% if service.image %}
+                    <img src="{{ url_for('static', filename='uploads/' + service.image) }}" alt="{{ service.name }}">
+                    {% endif %}
+                    <h3>{{ service.name }}</h3>
+                    <p class="category">{{ service.category }}</p>
+                    <div class="price-info">
+                        <span class="original-price">₹{{ service.price }}</span>
+                        {% if service.discount > 0 %}
+                        <span class="discount">-₹{{ service.discount }}</span>
+                        {% endif %}
+                        <span class="final-price">₹{{ service.price - service.discount }}</span>
+                    </div>
+                    <p class="short-desc">{{ service.short_description }}</p>
+                    <div class="card-footer">
+                        <small>Added: {{ service.added_at.strftime('%Y-%m-%d') }}</small>
+                        <small>Till: {{ service.available_till.strftime('%Y-%m-%d') if service.available_till else 'N/A' }}</small>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn add-to-cart" onclick="addToCart('service', {{ service.id }})">
+                            Add to Cart
+                        </button>
+                        <a href="{{ url_for('service_details', service_id=service.id) }}" class="btn view-details">
+                            View Details
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Section 2: Add More (Global Menu) -->
+        <section class="dashboard-section" id="section2">
+            <h2 class="section-title">Add More</h2>
+            <div class="cards-container">
+                {% if menus %}
+                    {% for menu in menus %}
+                    <div class="menu-card">
+                        {% if menu.image %}
+                        <img src="{{ url_for('static', filename='uploads/' + menu.image) }}" alt="{{ menu.name }}">
+                        {% endif %}
+                        <h3>{{ menu.name }}</h3>
+                        <p>{{ menu.description }}</p>
+                        <div class="price-info">
+                            <span class="original-price">₹{{ menu.price }}</span>
+                            {% if menu.discount > 0 %}
+                            <span class="discount">-₹{{ menu.discount }}</span>
+                            {% endif %}
+                            <span class="final-price">₹{{ menu.price - menu.discount }}</span>
+                        </div>
+                        <button class="btn add-to-cart" onclick="addToCart('menu', {{ menu.id }})">
+                            Add to Cart
+                        </button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="empty-message">Not available at the time</p>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- Section 3: Cart -->
+        <section class="dashboard-section" id="section3">
+            <h2 class="section-title">Your Cart</h2>
+            <div class="cart-container">
+                {% if cart_items %}
+                <table class="cart-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in cart_items %}
+                        <tr>
+                            <td>
+                                {% if item.service %}
+                                    {{ item.service.name }}
+                                {% elif item.menu %}
+                                    {{ item.menu.name }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="quantity-control">
+                                    <button onclick="updateCart({{ item.id }}, 'decrease')">-</button>
+                                    <span>{{ item.quantity }}</span>
+                                    <button onclick="updateCart({{ item.id }}, 'increase')">+</button>
+                                </div>
+                            </td>
+                            <td>
+                                {% if item.service %}
+                                    ₹{{ item.service.price - item.service.discount }}
+                                {% elif item.menu %}
+                                    ₹{{ item.menu.price - item.menu.discount }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.service %}
+                                    ₹{{ (item.service.price - item.service.discount) * item.quantity }}
+                                {% elif item.menu %}
+                                    ₹{{ (item.menu.price - item.menu.discount) * item.quantity }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn-remove" onclick="updateCart({{ item.id }}, 'remove')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="cart-summary">
+                    <h3>Total: ₹{{ cart_total }}</h3>
+                    <a href="{{ url_for('order_form') }}" class="btn confirm-order">Confirm Order</a>
+                </div>
+                {% else %}
+                <p class="empty-message">Your cart is empty</p>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- Section 4: Order History -->
+        <section class="dashboard-section" id="section4">
+            <h2 class="section-title">Order History</h2>
+            <div class="orders-container">
+                {% if orders %}
+                    {% for order in orders %}
+                    <div class="order-card">
+                        <div class="order-header">
+                            <span class="order-id">Order #{{ order.id }}</span>
+                            <span class="order-status {{ order.status|lower }}">{{ order.status }}</span>
+                            <span class="order-time">{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+                        <div class="order-items">
+                            {% set items_list = order.items|fromjson %}
+                            {% for item in items_list %}
+                            <div class="order-item">
+                                <span>{{ item.name }}</span>
+                                <span>x{{ item.quantity }}</span>
+                                <span>₹{{ item.price * item.quantity }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="order-footer">
+                            <span>Total: ₹{{ order.total_price }}</span>
+                            <span>Payment: {{ order.payment_method }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="empty-message">No orders yet</p>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- Section 5: Profile -->
+        <section class="dashboard-section" id="section5">
+            <h2 class="section-title">Your Profile</h2>
+            <div class="profile-container">
+                <div class="profile-header">
+                    <img src="{% if user.dp_filename %}{{ url_for('static', filename='uploads/' + user.dp_filename) }}{% else %}https://via.placeholder.com/100{% endif %}" 
+                         alt="Profile Picture" class="profile-dp">
+                    <h2>{{ user.name }}</h2>
+                </div>
+                <div class="profile-details">
+                    <div class="detail-item">
+                        <span class="label">Mobile:</span>
+                        <span class="value">{{ user.mobile }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Email:</span>
+                        <span class="value">{{ user.email }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Location:</span>
+                        <span class="value">{{ user.location }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Registered:</span>
+                        <span class="value">{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        function toggleMessages() {
+            const panel = document.getElementById('messagesPanel');
+            panel.classList.toggle('active');
+        }
+
+        function addToCart(type, id) {
+            fetch('/api/add_to_cart', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({type: type, id: id})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Added to cart!');
+                    location.reload();
+                }
+            });
+        }
+
+        function updateCart(cartId, action) {
+            fetch('/api/update_cart', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({cart_id: cartId, action: action})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            });
+        }
+    </script>
+</body>
+                      </html>
