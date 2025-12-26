@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <h1>Registration</h1>
+        <form method="POST" enctype="multipart/form-data">
+            <!-- 1. DP Upload -->
+            <div class="form-group">
+                <label for="dp">Upload Profile Picture</label>
+                <input type="file" id="dp" name="dp" accept="image/*" required>
+            </div>
+
+            <!-- 2. Name -->
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+
+            <!-- 3. Mobile Number -->
+            <div class="form-group">
+                <label for="mobile">Mobile Number</label>
+                <input type="tel" id="mobile" name="mobile" required>
+            </div>
+
+            <!-- 4. Email -->
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email">
+            </div>
+
+            <!-- 5. Location -->
+            <div class="form-group">
+                <label for="location">Location</label>
+                <div class="location-group">
+                    <input type="text" id="location" name="location" required>
+                    <button type="button" class="btn-location" onclick="getLocation()">
+                        Get Live Location
+                    </button>
+                </div>
+            </div>
+
+            <!-- 6. Password -->
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <!-- 7. Confirm Password -->
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" required>
+            </div>
+
+            <button type="submit" class="btn-submit">Register</button>
+        </form>
+
+        <p class="auth-link">
+            Already have an account? <a href="{{ url_for('login') }}">Login</a>
+        </p>
+    </div>
+
+    <script>
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        
+                        // Reverse geocoding would be implemented here
+                        // For demo, show coordinates
+                        document.getElementById('location').value = 
+                            `Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}`;
+                    },
+                    function(error) {
+                        alert('Unable to get location: ' + error.message);
+                    }
+                );
+            } else {
+                alert('Geolocation is not supported by this browser.');
+            }
+        }
+    </script>
+</body>
+                  </html>
